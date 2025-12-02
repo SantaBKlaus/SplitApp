@@ -27,7 +27,7 @@ export default function LoginPage() {
                     <div className="space-y-6">
                         <div className="inline-flex items-center gap-3 bg-[var(--card-bg)] border-2 border-[var(--border-color)] rounded-none px-5 py-2 shadow-[4px_4px_0px_0px_var(--shadow-color)]">
                             <Receipt className="w-4 h-4 text-foreground" />
-                            <span className="text-foreground font-bold tracking-wide">SplitBill</span>
+                            <span className="text-foreground font-bold tracking-wide">BullSplit</span>
                         </div>
 
                         <div className="space-y-4">

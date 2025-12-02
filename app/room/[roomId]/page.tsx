@@ -644,7 +644,7 @@ export default function RoomPage() {
                                             onChange={(e) => setNewItemName(e.target.value)}
                                             className="bauhaus-input flex-grow"
                                         />
-                                        <div className="flex items-center group hover:shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-shadow border-2 border-[var(--border-color)] rounded-none">
+                                        <div className="flex items-center group hover:shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:-translate-y-[2px] hover:-translate-x-[2px] transition-all border-2 border-[var(--border-color)] rounded-none">
                                             <button
                                                 type="button"
                                                 onClick={() => setNewItemQuantity(Math.max(1, newItemQuantity - 1))}

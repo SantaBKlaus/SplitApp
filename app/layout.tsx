@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import BauhausBackground from "@/components/BauhausBackground";
 
 export const metadata: Metadata = {
-  title: "SplitBill - Fair Bill Splitting Made Easy",
+  title: "BullSplit - Fair Bill Splitting Made Easy",
   description: "Collaborative bill splitting app for groups",
 };
 

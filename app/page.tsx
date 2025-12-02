@@ -197,7 +197,7 @@ export default function HomePage() {
       <div className="space-y-8">
         <motion.div variants={itemVariants} className="space-y-6">
           <div className="inline-block bg-[var(--bauhaus-dark)] text-[var(--background)] px-4 py-2 rotate-[-2deg] shadow-[4px_4px_0px_0px_var(--border-color)]">
-            <span className="font-bold tracking-wider">SPLITBILL</span>
+            <span className="font-bold tracking-wider">BULLSPLIT</span>
           </div>
 
           <div className="space-y-4">
