@@ -542,7 +542,7 @@ export default function HomePage() {
                 </div>
 
                 <form onSubmit={handleJoinRoom} className="space-y-6">
-                  <div className="flex gap-2 justify-center">
+                  <div className="grid grid-cols-4 sm:flex gap-2 justify-center">
                     {roomCode.map((char, index) => (
                       <input
                         key={index}
@@ -553,7 +553,7 @@ export default function HomePage() {
                         onKeyDown={(e) => handleKeyDown(index, e)}
                         onPaste={(e) => handlePaste(index, e)}
                         maxLength={1}
-                        className="w-12 h-14 bg-[var(--card-bg)] border-2 border-[var(--border-color)] focus:shadow-[4px_4px_0px_0px_var(--border-color)] text-center text-foreground text-2xl font-black outline-none transition-all uppercase rounded-none"
+                        className="w-full sm:w-12 h-14 bg-[var(--card-bg)] border-2 border-[var(--border-color)] focus:shadow-[4px_4px_0px_0px_var(--border-color)] text-center text-foreground text-2xl font-black outline-none transition-all uppercase rounded-none"
                         autoFocus={index === 0}
                       />
                     ))}

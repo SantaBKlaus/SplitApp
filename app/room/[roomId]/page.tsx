@@ -509,10 +509,19 @@ export default function RoomPage() {
                     </button>
                     <div>
                         <h1 className="font-black text-lg text-foreground leading-tight truncate max-w-[150px]">{room.name || 'Room'}</h1>
-                        <p className="text-xs font-bold text-foreground/60">Code: {room.code}</p>
+                        <button onClick={handleCopyCode} className="flex items-center gap-1 text-xs font-bold text-foreground/60 active:text-foreground transition-colors">
+                            Code: {room.code}
+                            {copiedCode ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                        </button>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleShareLink}
+                        className="p-2 bg-bauhaus-blue text-white border-2 border-[var(--border-color)] shadow-[2px_2px_0px_0px_var(--shadow-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none rounded-none"
+                    >
+                        {copiedShareLink ? <Check className="w-5 h-5" /> : <Users className="w-5 h-5" />}
+                    </button>
                     <button
                         onClick={() => setShowScanner(true)}
                         disabled={isSubmitted}
