@@ -22,8 +22,9 @@ import {
 import { calculateTotalBill, calculateUserShare, formatCurrency, calculateItemTax, calculateTotalTax, calculateTotalServiceCharge, calculateSubtotal } from '@/lib/calculations';
 import {
     Plus, Check, LogOut, Copy, Users, DollarSign, Receipt, Minus, X, Building2, ChevronDown, Percent, Coins, CreditCard, Wallet, Landmark, Sparkles, Coffee, Beer, Utensils,
-    ShoppingBag, Car, Plane, Gift, Music, Film, Gamepad, Shirt, Scissors, Stethoscope, GraduationCap, Briefcase, Globe, Layers, ChevronUp, Download, Sun, Moon, Trash2, AlertTriangle
+    ShoppingBag, Car, Plane, Gift, Music, Film, Gamepad, Shirt, Scissors, Stethoscope, GraduationCap, Briefcase, Globe, Layers, ChevronUp, Download, Sun, Moon, Trash2, AlertTriangle, ScanLine
 } from 'lucide-react';
+import ReceiptScanner from '@/components/ReceiptScanner';
 import { useTheme } from '@/contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -221,6 +222,7 @@ export default function RoomPage() {
     const [newProfileIcon, setNewProfileIcon] = useState('Percent');
     const [expandIcons, setExpandIcons] = useState(false);
     const [showDangerZone, setShowDangerZone] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
 
     const roomId = typeof params?.roomId === 'string' ? params.roomId : '';
 
@@ -314,6 +316,24 @@ export default function RoomPage() {
             } catch (error) {
                 console.error('Error updating service tax:', error);
             }
+        }
+    };
+
+    const handleScanComplete = async (scannedItems: any[], scannedServiceTax: number) => {
+        if (!user) return;
+
+        // Add all items
+        for (const item of scannedItems) {
+            try {
+                await addItem(roomId, item.name, item.price, user.uid, undefined, item.quantity);
+            } catch (error) {
+                console.error('Error adding scanned item:', error);
+            }
+        }
+
+        // Update service tax if detected and different
+        if (scannedServiceTax > 0 && scannedServiceTax !== serviceTaxRate) {
+            handleUpdateServiceTax(scannedServiceTax.toString());
         }
     };
 
@@ -508,6 +528,16 @@ export default function RoomPage() {
                                 </h2>
                                 <button onClick={() => setShowAddItem(!showAddItem)} className="lg:hidden p-2 bg-bauhaus-dark text-background rounded-none">
                                     {showAddItem ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                </button>
+                            </div>
+
+                            <div className="mb-6">
+                                <button
+                                    onClick={() => setShowScanner(true)}
+                                    className="w-full flex items-center justify-center gap-2 py-3 bg-[var(--card-bg)] border-2 border-dashed border-[var(--border-color)] hover:border-bauhaus-blue hover:text-bauhaus-blue transition-colors font-bold uppercase rounded-none"
+                                >
+                                    <ScanLine className="w-5 h-5" />
+                                    Scan Receipt with AI
                                 </button>
                             </div>
 
@@ -970,6 +1000,14 @@ export default function RoomPage() {
                     document.body
                 )
             }
-        </div >
+
+            {/* Receipt Scanner Modal */}
+            {showScanner && (
+                <ReceiptScanner
+                    onScanComplete={handleScanComplete}
+                    onClose={() => setShowScanner(false)}
+                />
+            )}
+        </div>
     );
 }
