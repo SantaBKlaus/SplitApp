@@ -24,7 +24,7 @@ import { ReceiptCard } from '@/components/ReceiptCard';
 import { calculateTotalBill, calculateUserShare, formatCurrency, calculateItemTax, calculateTotalTax, calculateTotalServiceCharge, calculateSubtotal } from '@/lib/calculations';
 import {
     Plus, Check, LogOut, Copy, Users, DollarSign, Receipt, Minus, X, Building2, ChevronDown, Percent, Coins, CreditCard, Wallet, Landmark, Sparkles, Coffee, Beer, Utensils,
-    ShoppingBag, Car, Plane, Gift, Music, Film, Gamepad, Shirt, Scissors, Stethoscope, GraduationCap, Briefcase, Globe, Layers, ChevronUp, Download, Sun, Moon, Trash2, AlertTriangle, ScanLine, ArrowLeft
+    ShoppingBag, Car, Plane, Gift, Music, Film, Gamepad, Shirt, Scissors, Stethoscope, GraduationCap, Briefcase, Globe, Layers, ChevronUp, Download, Sun, Moon, Trash2, AlertTriangle, ScanLine, ArrowLeft, Settings
 } from 'lucide-react';
 import ReceiptScanner from '@/components/ReceiptScanner';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -538,9 +538,9 @@ export default function RoomPage() {
                     </button>
                     <button
                         onClick={() => setShowDangerZone(true)}
-                        className="p-2 bg-red-500 text-white border-2 border-[var(--border-color)] shadow-[2px_2px_0px_0px_var(--shadow-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none rounded-none"
+                        className="p-2 bg-[var(--card-bg)] text-foreground border-2 border-[var(--border-color)] shadow-[2px_2px_0px_0px_var(--shadow-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none rounded-none"
                     >
-                        <AlertTriangle className="w-5 h-5" />
+                        <Settings className="w-5 h-5" />
                     </button>
                 </div>
             </header>
@@ -601,10 +601,10 @@ export default function RoomPage() {
                         </button>
                         <button
                             onClick={() => setShowDangerZone(true)}
-                            className="bg-red-500 text-white px-4 py-2 border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all font-bold flex items-center gap-2 rounded-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                            className="bg-[var(--card-bg)] text-foreground px-4 py-2 border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all font-bold flex items-center gap-2 rounded-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                         >
-                            <AlertTriangle className="w-5 h-5" />
-                            DANGER ZONE
+                            <Settings className="w-5 h-5" />
+                            ROOM SETTINGS
                         </button>
                     </div>
                 </div>
@@ -834,7 +834,7 @@ export default function RoomPage() {
                             {hasUserSelectedItems && (
                                 <button
                                     onClick={handleDownloadReceipt}
-                                    disabled={isDownloading}
+                                    disabled={isDownloading || !isSubmitted}
                                     className="w-full mt-3 flex items-center justify-center gap-2 bg-bauhaus-yellow text-bauhaus-dark border-2 border-[var(--border-color)] font-black py-3 shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none uppercase rounded-none hover:-translate-y-0.5 hover:-translate-x-0.5"
                                 >
                                     {isDownloading ? (
@@ -1073,8 +1073,8 @@ export default function RoomPage() {
                                 >
                                     <div className="flex items-center justify-between mb-6">
                                         <h2 className="text-2xl font-black text-foreground flex items-center gap-2 uppercase">
-                                            <AlertTriangle className="w-6 h-6 text-red-500" />
-                                            Danger Zone
+                                            <Settings className="w-6 h-6 text-foreground" />
+                                            Room Settings
                                         </h2>
                                         <button
                                             onClick={() => setShowDangerZone(false)}
@@ -1086,28 +1086,40 @@ export default function RoomPage() {
 
                                     <div className="space-y-4">
                                         {!user?.isAnonymous && (
-                                            <button
-                                                onClick={() => {
-                                                    setShowDangerZone(false);
-                                                    handleLeaveRoom();
-                                                }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 bg-white dark:bg-neutral-800 border-2 border-[var(--border-color)] text-red-500 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:shadow-[4px_4px_0px_0px_var(--shadow-color)]"
-                                            >
-                                                <LogOut className="w-5 h-5" />
-                                                <span>Leave Room</span>
-                                            </button>
+                                            <div className="p-4 border-2 border-[var(--border-color)] bg-[var(--card-bg)] shadow-[4px_4px_0px_0px_var(--shadow-color)]">
+                                                <h3 className="font-bold text-lg mb-1">Leave Room</h3>
+                                                <p className="text-sm text-foreground/60 mb-4">
+                                                    Disconnect from this room. You can rejoin later using the room code.
+                                                </p>
+                                                <button
+                                                    onClick={() => {
+                                                        setShowDangerZone(false);
+                                                        handleLeaveRoom();
+                                                    }}
+                                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-bauhaus-yellow text-bauhaus-dark border-2 border-[var(--border-color)] font-bold hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)]"
+                                                >
+                                                    <LogOut className="w-5 h-5" />
+                                                    <span>LEAVE ROOM</span>
+                                                </button>
+                                            </div>
                                         )}
                                         {user?.uid === room.createdBy && (
-                                            <button
-                                                onClick={() => {
-                                                    setShowDangerZone(false);
-                                                    handleDeleteRoom();
-                                                }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 bg-red-500 border-2 border-[var(--border-color)] text-white font-bold hover:bg-red-600 transition-colors rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:shadow-[4px_4px_0px_0px_var(--shadow-color)]"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                                <span>Delete Room</span>
-                                            </button>
+                                            <div className="p-4 border-2 border-red-500 bg-red-50 dark:bg-red-900/10 shadow-[4px_4px_0px_0px_var(--shadow-color)]">
+                                                <h3 className="font-bold text-lg mb-1 text-red-600 dark:text-red-400">Delete Room</h3>
+                                                <p className="text-sm text-red-600/60 dark:text-red-400/60 mb-4">
+                                                    Permanently delete this room and all its data. This action cannot be undone.
+                                                </p>
+                                                <button
+                                                    onClick={() => {
+                                                        setShowDangerZone(false);
+                                                        handleDeleteRoom();
+                                                    }}
+                                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500 border-2 border-red-600 text-white font-bold hover:bg-red-600 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all rounded-none shadow-[2px_2px_0px_0px_rgba(220,38,38,1)]"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                    <span>DELETE ROOM</span>
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </motion.div>
