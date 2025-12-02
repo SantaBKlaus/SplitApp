@@ -312,6 +312,30 @@ export const updateRoomServiceTax = async (roomId: string, rate: number) => {
     }
 };
 
+// Update participant display name
+export const updateParticipantName = async (roomId: string, userId: string, newDisplayName: string) => {
+    try {
+        const roomRef = doc(db, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+
+        if (!roomSnap.exists()) {
+            throw new Error('Room not found');
+        }
+
+        const room = roomSnap.data() as Room;
+        const updatedParticipants = room.participants.map((p) =>
+            p.userId === userId ? { ...p, displayName: newDisplayName } : p
+        );
+
+        await updateDoc(roomRef, {
+            participants: updatedParticipants,
+        });
+    } catch (error) {
+        console.error('Error updating participant name:', error);
+        throw error;
+    }
+};
+
 // Update item's tax profile
 export const updateItemTaxProfile = async (roomId: string, itemId: string, taxProfileId: string | undefined) => {
     try {

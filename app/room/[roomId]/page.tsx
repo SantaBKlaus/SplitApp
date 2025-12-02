@@ -18,13 +18,14 @@ import {
     updateRoomServiceTax,
     deleteItem,
     deleteRoom,
+    updateParticipantName,
 } from '@/lib/firebase/firestore';
 import html2canvas from 'html2canvas';
 import { ReceiptCard } from '@/components/ReceiptCard';
 import { calculateTotalBill, calculateUserShare, formatCurrency, calculateItemTax, calculateTotalTax, calculateTotalServiceCharge, calculateSubtotal } from '@/lib/calculations';
 import {
     Plus, Check, LogOut, Copy, Users, DollarSign, Receipt, Minus, X, Building2, ChevronDown, Percent, Coins, CreditCard, Wallet, Landmark, Sparkles, Coffee, Beer, Utensils,
-    ShoppingBag, Car, Plane, Gift, Music, Film, Gamepad, Shirt, Scissors, Stethoscope, GraduationCap, Briefcase, Globe, Layers, ChevronUp, Download, Sun, Moon, Trash2, AlertTriangle, ScanLine, ArrowLeft, Settings
+    ShoppingBag, Car, Plane, Gift, Music, Film, Gamepad, Shirt, Scissors, Stethoscope, GraduationCap, Briefcase, Globe, Layers, ChevronUp, Download, Sun, Moon, Trash2, AlertTriangle, ScanLine, ArrowLeft, Settings, Edit
 } from 'lucide-react';
 import ReceiptScanner from '@/components/ReceiptScanner';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -229,6 +230,10 @@ export default function RoomPage() {
     const [isDownloading, setIsDownloading] = useState(false);
     const receiptRef = useRef<HTMLDivElement>(null);
 
+    // Name Edit State
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [newDisplayName, setNewDisplayName] = useState('');
+
     const roomId = typeof params?.roomId === 'string' ? params.roomId : '';
 
     useEffect(() => {
@@ -411,6 +416,24 @@ export default function RoomPage() {
         navigator.clipboard.writeText(window.location.href);
         setCopiedLink(true);
         setTimeout(() => setCopiedLink(false), 2000);
+    };
+
+    const handleUpdateName = async () => {
+        if (!user || !room || !newDisplayName.trim()) return;
+
+        try {
+            // Update Firebase Auth profile
+            const { updateProfile } = await import('firebase/auth');
+            await updateProfile(user, { displayName: newDisplayName.trim() });
+
+            // Update participant name in room
+            await updateParticipantName(roomId, user.uid, newDisplayName.trim());
+
+            setIsEditingName(false);
+            setNewDisplayName('');
+        } catch (error) {
+            console.error('Error updating name:', error);
+        }
     };
 
     const handleShareLink = () => {

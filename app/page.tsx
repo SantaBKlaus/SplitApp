@@ -1,10 +1,10 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { createRoom, getRoomByCode, getUserRooms, Room } from '@/lib/firebase/firestore';
+import { createRoom, getRoomByCode, getUserRooms, Room, updateParticipantName } from '@/lib/firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Plus, DoorOpen, History, Split, ArrowLeft, Clock, CheckCircle, Receipt, Sun, Moon } from 'lucide-react';
+import { Plus, DoorOpen, History, Split, ArrowLeft, Clock, CheckCircle, Receipt, Sun, Moon, Edit, Check, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -28,6 +28,8 @@ export default function HomePage() {
   const [roomName, setRoomName] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [currency, setCurrency] = useState('USD');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState('');
 
 
   // Detect currency from timezone
@@ -98,6 +100,29 @@ export default function HomePage() {
     } catch (error) {
       console.error('Failed to create room:', error);
       setIsCreating(false);
+    }
+  };
+
+  const handleUpdateName = async () => {
+    if (!user || !newDisplayName.trim()) return;
+
+    try {
+      // Update Firebase Auth profile
+      const { updateProfile } = await import('firebase/auth');
+      await updateProfile(user, { displayName: newDisplayName.trim() });
+
+      // Update participant name in all active rooms
+      const rooms = await getUserRooms(user.uid);
+      const activeRooms = rooms.filter(r => r.participants.some(p => p.userId === user.uid));
+
+      await Promise.all(
+        activeRooms.map(room => updateParticipantName(room.id, user.uid, newDisplayName.trim()))
+      );
+
+      setIsEditingName(false);
+      setNewDisplayName('');
+    } catch (error) {
+      console.error('Error updating name:', error);
     }
   };
 
@@ -482,20 +507,62 @@ export default function HomePage() {
             >
               {user && (
                 <div className="flex items-center gap-3">
-                  <div className="inline-flex items-center gap-3 bg-[var(--card-bg)] border-2 border-[var(--border-color)] px-4 py-2 rounded-none">
-                    <div className="w-2 h-2 bg-bauhaus-red"></div>
-                    <span className="text-foreground font-bold tracking-wide">{user.displayName}</span>
-                  </div>
-                  {!user.isAnonymous && (
-                    <button
-                      onClick={() => signOut()}
-                      className="bg-bauhaus-red border-2 border-[var(--border-color)] text-white p-2 hover:bg-bauhaus-red/80 transition-all rounded-none"
-                      title="Sign Out"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                    </button>
+                  {isEditingName ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newDisplayName}
+                        onChange={(e) => setNewDisplayName(e.target.value)}
+                        className="px-3 py-2 font-bold border-2 border-[var(--border-color)] bg-[var(--input-bg)] rounded-none focus:outline-none focus:shadow-[4px_4px_0px_0px_var(--shadow-color)]"
+                        placeholder="Your name"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleUpdateName}
+                        className="p-2 bg-bauhaus-blue text-white border-2 border-[var(--border-color)] rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:-translate-y-[2px] hover:-translate-x-[2px] transition-all"
+                      >
+                        <Check className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsEditingName(false);
+                          setNewDisplayName('');
+                        }}
+                        className="p-2 bg-red-500 text-white border-2 border-[var(--border-color)] rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:-translate-y-[2px] hover:-translate-x-[2px] transition-all"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="inline-flex items-center gap-3 bg-[var(--card-bg)] border-2 border-[var(--border-color)] px-4 py-2 rounded-none">
+                        <div className="w-2 h-2 bg-bauhaus-red"></div>
+                        <span className="text-foreground font-bold tracking-wide">{user.displayName}</span>
+                        {user.isAnonymous && (
+                          <button
+                            onClick={() => {
+                              setNewDisplayName(user.displayName || '');
+                              setIsEditingName(true);
+                            }}
+                            className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
+                            title="Edit your name"
+                          >
+                            <Edit className="w-4 h-4 text-foreground/60" />
+                          </button>
+                        )}
+                      </div>
+                      {!user.isAnonymous && (
+                        <button
+                          onClick={() => signOut()}
+                          className="bg-bauhaus-red border-2 border-[var(--border-color)] text-white p-2 hover:bg-bauhaus-red/80 transition-all rounded-none"
+                          title="Sign Out"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               )}
