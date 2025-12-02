@@ -118,7 +118,7 @@ export default function JoinRoomPage() {
                 variants={bauhausCard}
                 initial="hidden"
                 animate="visible"
-                className="max-w-md w-full bauhaus-card p-8 space-y-8 bg-[var(--card-bg)] border-2 border-[var(--border-color)] shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none"
+                className="w-[95%] max-w-md bauhaus-card p-6 sm:p-8 space-y-8 bg-[var(--card-bg)] border-2 border-[var(--border-color)] shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none"
             >
                 <div className="text-center space-y-4">
                     <motion.div

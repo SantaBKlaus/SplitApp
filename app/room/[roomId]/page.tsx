@@ -453,13 +453,13 @@ export default function RoomPage() {
         <div className={`min-h-screen transition-colors duration-300 bg-background`}>
             {/* Header */}
             <header className="bg-bauhaus-yellow/90 backdrop-blur-md border-b-4 border-black dark:border-white p-4 sticky top-0 z-50 shadow-[0px_4px_0px_0px_var(--shadow-color)] transition-all">
-                <div className="max-w-6xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-4">
+                <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
                         <button onClick={handleBackButton} className="p-2 bg-white dark:bg-neutral-800 border-2 border-black dark:border-white hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-[2px_2px_0px_0px_var(--shadow-color)] transition-all rounded-none">
                             <ChevronDown className="w-6 h-6 rotate-90 text-black dark:text-white" />
                         </button>
                         <div>
-                            <h1 className="text-2xl font-black text-bauhaus-dark uppercase tracking-tighter">{room.name || 'Room'}</h1>
+                            <h1 className="text-xl sm:text-2xl font-black text-bauhaus-dark uppercase tracking-tighter truncate max-w-[200px] sm:max-w-none">{room.name || 'Room'}</h1>
                             <div className="flex items-center gap-2 text-sm font-bold text-bauhaus-dark/80">
                                 <span className="bg-white/50 px-2 py-0.5 border border-black/20 rounded-none">{room.code}</span>
                                 <button onClick={handleCopyCode} className="hover:text-black transition-colors">
@@ -468,18 +468,18 @@ export default function RoomPage() {
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                         <button
                             onClick={() => setShowTaxPanel(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-neutral-800 border-2 border-black dark:border-white hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)]"
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white dark:bg-neutral-800 border-2 border-black dark:border-white hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)]"
                         >
                             <Building2 className="w-5 h-5 text-black dark:text-white" />
-                            <span className="text-black dark:text-white text-sm">Tax</span>
+                            <span className="text-black dark:text-white text-sm hidden sm:inline">Tax</span>
                         </button>
                         {!user?.isAnonymous && (
                             <button
                                 onClick={() => setShowDangerZone(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-500 border-2 border-black dark:border-white hover:bg-red-600 transition-colors font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)]"
+                                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-500 border-2 border-black dark:border-white hover:bg-red-600 transition-colors font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)]"
                                 title="Danger Zone"
                             >
                                 <AlertTriangle className="w-5 h-5 text-white" />
@@ -487,17 +487,17 @@ export default function RoomPage() {
                         )}
                         <button
                             onClick={handleShareLink}
-                            className="flex items-center gap-2 px-4 py-2 bg-bauhaus-dark text-white border-2 border-black dark:border-white font-bold hover:shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-all rounded-none uppercase shadow-[2px_2px_0px_0px_var(--shadow-color)]"
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-bauhaus-dark text-white border-2 border-black dark:border-white font-bold hover:shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-all rounded-none uppercase shadow-[2px_2px_0px_0px_var(--shadow-color)]"
                         >
                             <Download className="w-5 h-5" />
-                            <span className="text-sm">Share</span>
+                            <span className="text-sm hidden sm:inline">Share</span>
                         </button>
                     </div>
                 </div>
             </header>
 
             <main className="max-w-6xl mx-auto p-4 pb-32">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
                     {/* Left Column: Items */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Add Item Form */}
@@ -550,7 +550,7 @@ export default function RoomPage() {
                                             placeholder="Price"
                                             value={newItemPrice}
                                             onChange={(e) => setNewItemPrice(e.target.value)}
-                                            className="bauhaus-input w-28"
+                                            className="bauhaus-input w-full sm:w-28"
                                             step="0.01"
                                         />
                                         <button
@@ -754,7 +754,7 @@ export default function RoomPage() {
                                     initial="hidden"
                                     animate="visible"
                                     exit="exit"
-                                    className="bg-[var(--card-bg)] border-2 border-[var(--border-color)] p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative z-10 shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none"
+                                    className="bg-[var(--card-bg)] border-2 border-[var(--border-color)] p-6 w-[95%] max-w-md max-h-[90vh] overflow-y-auto relative z-10 shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none"
                                 >
                                     <div className="flex items-center justify-between mb-6">
                                         <h2 className="text-2xl font-black text-foreground flex items-center gap-2 uppercase">

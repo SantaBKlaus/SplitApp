@@ -191,7 +191,7 @@ export default function HomePage() {
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="w-full max-w-7xl grid lg:grid-cols-2 gap-12 items-center"
+      className="w-full max-w-7xl grid lg:grid-cols-2 grid-cols-1 gap-12 items-center"
     >
       {/* Left side - Brand */}
       <div className="space-y-8">
@@ -201,7 +201,7 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-4">
-            <h1 className="text-7xl font-black text-foreground leading-none tracking-tight">
+            <h1 className="text-5xl lg:text-7xl font-black text-foreground leading-none tracking-tight">
               SPLIT
               <br />
               <span className="text-bauhaus-red">BILLS.</span>
@@ -276,7 +276,7 @@ export default function HomePage() {
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="grid lg:grid-cols-2 gap-6 w-full max-w-4xl"
+      className="grid lg:grid-cols-2 grid-cols-1 gap-6 w-full max-w-4xl"
     >
       <motion.button
         variants={itemVariants}
@@ -333,7 +333,7 @@ export default function HomePage() {
         {user && !user.isAnonymous ? 'BACK TO MENU' : 'BACK TO HOME'}
       </motion.button>
 
-      <div className="grid lg:grid-cols-5 gap-6">
+      <div className="grid lg:grid-cols-5 grid-cols-1 gap-6">
         {/* Create Room - Only for authenticated users */}
         {user && !user.isAnonymous && (
           <motion.button
@@ -560,7 +560,7 @@ export default function HomePage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-2xl bg-[var(--card-bg)] border-2 border-[var(--border-color)] p-8 shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none"
+              className="w-[95%] max-w-2xl bg-[var(--card-bg)] border-2 border-[var(--border-color)] p-8 shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="space-y-8">
@@ -649,7 +649,7 @@ export default function HomePage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[var(--card-bg)] border-2 border-[var(--border-color)] p-8 w-full max-w-md shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none"
+              className="bg-[var(--card-bg)] border-2 border-[var(--border-color)] p-8 w-[95%] max-w-md shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none"
             >
               <h3 className="text-3xl font-black text-foreground mb-6 uppercase">Create New Room</h3>
               <div className="space-y-6">
@@ -731,7 +731,7 @@ export default function HomePage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[var(--card-bg)] border-2 border-[var(--border-color)] p-8 w-full max-w-md shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none"
+              className="bg-[var(--card-bg)] border-2 border-[var(--border-color)] p-8 w-[95%] max-w-md shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none"
             >
               <h3 className="text-3xl font-black text-foreground mb-6 uppercase">Enter Your Name</h3>
               <div className="space-y-6">
