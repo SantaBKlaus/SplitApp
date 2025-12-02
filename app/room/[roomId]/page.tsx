@@ -536,12 +536,14 @@ export default function RoomPage() {
                     >
                         <Percent className="w-5 h-5" />
                     </button>
-                    <button
-                        onClick={() => setShowDangerZone(true)}
-                        className="p-2 bg-[var(--card-bg)] text-foreground border-2 border-[var(--border-color)] shadow-[2px_2px_0px_0px_var(--shadow-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none rounded-none"
-                    >
-                        <Settings className="w-5 h-5" />
-                    </button>
+                    {!user?.isAnonymous && (
+                        <button
+                            onClick={() => setShowDangerZone(true)}
+                            className="p-2 bg-[var(--card-bg)] text-foreground border-2 border-[var(--border-color)] shadow-[2px_2px_0px_0px_var(--shadow-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none rounded-none"
+                        >
+                            <Settings className="w-5 h-5" />
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -599,13 +601,15 @@ export default function RoomPage() {
                             <Percent className="w-5 h-5" />
                             TAXES
                         </button>
-                        <button
-                            onClick={() => setShowDangerZone(true)}
-                            className="bg-[var(--card-bg)] text-foreground px-4 py-2 border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all font-bold flex items-center gap-2 rounded-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                        >
-                            <Settings className="w-5 h-5" />
-                            ROOM SETTINGS
-                        </button>
+                        {!user?.isAnonymous && (
+                            <button
+                                onClick={() => setShowDangerZone(true)}
+                                className="bg-[var(--card-bg)] text-foreground px-4 py-2 border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all font-bold flex items-center gap-2 rounded-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                            >
+                                <Settings className="w-5 h-5" />
+                                ROOM SETTINGS
+                            </button>
+                        )}
                     </div>
                 </div>
 
