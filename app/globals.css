@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Refined Bauhaus Palette - More Vibrant & Modern */
+  --background: #F0EFE9;
+  /* Slightly warmer off-white */
+  --foreground: #1A1A1A;
+  /* Softer black */
+
+  --bauhaus-red: #E63946;
+  /* Vibrant red */
+  --bauhaus-blue: #457B9D;
+  /* Muted but deep blue */
+  --bauhaus-yellow: #F4A261;
+  /* Warm sandy yellow */
+
+  --bauhaus-dark: #1D3557;
+  /* Deep navy instead of pure black */
+  --bauhaus-light: #F1FAEE;
+  /* Very light minty white */
+
+  --card-bg: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --border-color: #1D3557;
+  --shadow-color: #000000;
+}
+
+.dark {
+  --background: #0F172A;
+  /* Deep slate blue background */
+  --foreground: #F1FAEE;
+
+  --bauhaus-red: #FF6B6B;
+  /* Lighter, glowing red */
+  --bauhaus-blue: #6B93FF;
+  /* Bright blue */
+  --bauhaus-yellow: #FFD93D;
+  /* Bright yellow */
+
+  --bauhaus-dark: #F1FAEE;
+  /* Light text on dark */
+  --bauhaus-light: #1E293B;
+  /* Slate card bg */
+
+  --card-bg: #1E293B;
+  --input-bg: #334155;
+  --border-color: #F1FAEE;
+  --shadow-color: #000000;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Space Grotesk', sans-serif;
+  overflow-x: hidden;
+  /* Halftone Pattern for Comic Look */
+  background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+  opacity: 1;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  background-image: radial-gradient(rgba(241, 250, 238, 0.15) 1px, transparent 1px);
+}
+
+@layer components {
+
+  /* Brutalist / Bauhaus Utilities */
+  .bauhaus-card {
+    @apply bg-[var(--card-bg)] border-2 border-[var(--border-color)] transition-all rounded-none;
+    box-shadow: 6px 6px 0px 0px var(--shadow-color);
+  }
+
+  .bauhaus-card:hover {
+    box-shadow: 10px 10px 0px 0px var(--shadow-color);
+    @apply -translate-y-[2px] -translate-x-[2px];
+  }
+
+  .bauhaus-button {
+    @apply bg-[var(--bauhaus-dark)] text-[var(--background)] font-bold border-2 border-[var(--border-color)] rounded-none active:translate-y-[2px] active:translate-x-[2px] active:shadow-none transition-all;
+    box-shadow: 4px 4px 0px 0px var(--shadow-color);
+  }
+
+  .bauhaus-button:hover {
+    @apply -translate-y-[2px] -translate-x-[2px];
+    box-shadow: 6px 6px 0px 0px var(--shadow-color);
+  }
+
+  .bauhaus-input {
+    @apply bg-[var(--input-bg)] border-2 border-[var(--border-color)] p-3 font-medium focus:outline-none transition-all placeholder:font-normal text-[var(--foreground)] rounded-none;
+  }
+
+  .bauhaus-input:focus,
+  .bauhaus-input:hover {
+    box-shadow: 4px 4px 0px 0px var(--shadow-color);
+    @apply -translate-y-[2px] -translate-x-[2px];
+  }
+
+  .bauhaus-border {
+    @apply border-2 border-[var(--border-color)];
+  }
+
+  /* Comic Accents */
+  .bg-halftone {
+    background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+    background-size: 10px 10px;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+  border-left: 2px solid var(--border-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bauhaus-yellow);
+  border: 2px solid var(--border-color);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bauhaus-red);
+}
+
+/* Remove number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
