@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Camera, Upload, X, Check, Loader2, Plus, Minus, Trash2, ScanLine } from 'lucide-react';
+import { Camera, Upload, X, Check, Loader2, Plus, Minus, Trash2, ScanLine, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { bauhausBtn, bauhausCard, modal } from '@/lib/animations';
 
@@ -11,8 +11,15 @@ interface ScannedItem {
     quantity: number;
 }
 
+interface TaxProfile {
+    name: string;
+    rate: number;
+    isGlobal: boolean;
+    isDouble?: boolean;
+}
+
 interface ReceiptScannerProps {
-    onScanComplete: (items: ScannedItem[], serviceTax: number) => void;
+    onScanComplete: (items: ScannedItem[], serviceTax: number, taxProfiles: TaxProfile[]) => void;
     onClose: () => void;
 }
 
@@ -20,6 +27,7 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
     const [isScanning, setIsScanning] = useState(false);
     const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
     const [serviceTax, setServiceTax] = useState(0);
+    const [taxProfiles, setTaxProfiles] = useState<TaxProfile[]>([]);
     const [step, setStep] = useState<'upload' | 'review'>('upload');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,6 +55,7 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
 
             setScannedItems(data.items || []);
             setServiceTax(data.serviceTax || 0);
+            setTaxProfiles(data.taxProfiles || []);
             setStep('review');
         } catch (error) {
             console.error('Error scanning receipt:', error);
@@ -72,7 +81,7 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
     };
 
     const handleConfirm = () => {
-        onScanComplete(scannedItems, serviceTax);
+        onScanComplete(scannedItems, serviceTax, taxProfiles);
         onClose();
     };
 
@@ -148,20 +157,39 @@ export default function ReceiptScanner({ onScanComplete, onClose }: ReceiptScann
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        <div className="flex items-center justify-between bg-bauhaus-yellow/20 p-3 border border-bauhaus-yellow rounded-none">
-                            <span className="font-bold text-sm">Service Tax Detected:</span>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    value={serviceTax}
-                                    onChange={(e) => setServiceTax(parseFloat(e.target.value) || 0)}
-                                    className="w-16 bg-transparent border-b border-black font-bold text-center focus:outline-none"
-                                />
-                                <span className="font-bold">%</span>
+                        <div className="flex flex-wrap gap-3">
+                            <div className="flex-1 flex items-center justify-between bg-bauhaus-yellow/20 p-3 border border-bauhaus-yellow rounded-none min-w-[200px]">
+                                <span className="font-bold text-sm">Service Tax:</span>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        value={serviceTax}
+                                        onChange={(e) => setServiceTax(parseFloat(e.target.value) || 0)}
+                                        className="w-16 bg-transparent border-b border-black font-bold text-center focus:outline-none"
+                                    />
+                                    <span className="font-bold">%</span>
+                                </div>
                             </div>
+
+                            {taxProfiles.length > 0 && (
+                                <div className="w-full space-y-2">
+                                    <h3 className="text-xs font-bold uppercase text-foreground/60">Detected Taxes</h3>
+                                    {taxProfiles.map((profile, idx) => (
+                                        <div key={idx} className="flex items-center justify-between bg-bauhaus-blue/10 p-2 border border-bauhaus-blue rounded-none">
+                                            <div className="flex items-center gap-2">
+                                                <Building2 className="w-4 h-4 text-bauhaus-blue" />
+                                                <span className="font-bold text-sm">{profile.name}</span>
+                                                {profile.isGlobal && <span className="text-[10px] bg-bauhaus-blue text-white px-1">GLOBAL</span>}
+                                                {profile.isDouble && <span className="text-[10px] bg-bauhaus-yellow text-bauhaus-dark px-1">DOUBLE</span>}
+                                            </div>
+                                            <span className="font-bold text-sm">{profile.rate}%</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
-                        <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                        <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
                             {scannedItems.map((item, index) => (
                                 <div key={index} className="flex gap-2 items-start bg-black/5 dark:bg-white/5 p-2 rounded-none">
                                     <div className="flex-1 space-y-2">

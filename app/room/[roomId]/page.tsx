@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -8,7 +8,7 @@ import {
     subscribeToItems,
     addItem,
     toggleItemSelection,
-    submitSelections,
+    toggleSubmissionStatus,
     leaveRoom,
     updateRoomTaxProfiles,
     updateItemTaxProfile,
@@ -19,16 +19,17 @@ import {
     deleteItem,
     deleteRoom,
 } from '@/lib/firebase/firestore';
+import html2canvas from 'html2canvas';
+import { ReceiptCard } from '@/components/ReceiptCard';
 import { calculateTotalBill, calculateUserShare, formatCurrency, calculateItemTax, calculateTotalTax, calculateTotalServiceCharge, calculateSubtotal } from '@/lib/calculations';
 import {
     Plus, Check, LogOut, Copy, Users, DollarSign, Receipt, Minus, X, Building2, ChevronDown, Percent, Coins, CreditCard, Wallet, Landmark, Sparkles, Coffee, Beer, Utensils,
-    ShoppingBag, Car, Plane, Gift, Music, Film, Gamepad, Shirt, Scissors, Stethoscope, GraduationCap, Briefcase, Globe, Layers, ChevronUp, Download, Sun, Moon, Trash2, AlertTriangle, ScanLine
+    ShoppingBag, Car, Plane, Gift, Music, Film, Gamepad, Shirt, Scissors, Stethoscope, GraduationCap, Briefcase, Globe, Layers, ChevronUp, Download, Sun, Moon, Trash2, AlertTriangle, ScanLine, ArrowLeft
 } from 'lucide-react';
 import ReceiptScanner from '@/components/ReceiptScanner';
 import { useTheme } from '@/contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { useRef } from 'react';
 import { bauhausBtn, bauhausCard, container, modal } from '@/lib/animations';
 
 const ICON_MAP: Record<string, any> = {
@@ -181,7 +182,7 @@ const CustomTaxDropdown = ({
                                                     <p className={`text-sm font-bold ${isSelected ? 'text-bauhaus-dark' : 'text-foreground'}`}>
                                                         {profile.name}
                                                     </p>
-                                                    <p className={`text-xs ${isSelected ? 'text-bauhaus-dark/80' : 'text-foreground/60'}`}>{profile.rate}% • {profile.isDouble ? 'Double' : 'Single'}</p>
+                                                    <p className={`text-xs ${isSelected ? 'text-bauhaus-dark/80' : 'text-foreground/60'}`}>{profile.rate}% Tax Rate</p>
                                                 </div>
                                                 {isSelected && <Check className="w-4 h-4 text-bauhaus-dark ml-auto" />}
                                             </button>
@@ -223,6 +224,10 @@ export default function RoomPage() {
     const [expandIcons, setExpandIcons] = useState(false);
     const [showDangerZone, setShowDangerZone] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
+
+    // Receipt Download State
+    const [isDownloading, setIsDownloading] = useState(false);
+    const receiptRef = useRef<HTMLDivElement>(null);
 
     const roomId = typeof params?.roomId === 'string' ? params.roomId : '';
 
@@ -284,18 +289,6 @@ export default function RoomPage() {
         }
     };
 
-    const handleSubmit = async () => {
-        if (!user) return;
-        setIsSubmitting(true);
-        try {
-            await submitSelections(roomId, user.uid);
-        } catch (error) {
-            console.error('Error submitting:', error);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
     const handleUpdateServiceTax = async (value: string) => {
         // Allow empty string for temporary deletion
         if (value === '') {
@@ -319,7 +312,7 @@ export default function RoomPage() {
         }
     };
 
-    const handleScanComplete = async (scannedItems: any[], scannedServiceTax: number) => {
+    const handleScanComplete = async (scannedItems: any[], scannedServiceTax: number, scannedTaxProfiles: any[]) => {
         if (!user) return;
 
         // Add all items
@@ -335,6 +328,35 @@ export default function RoomPage() {
         if (scannedServiceTax > 0 && scannedServiceTax !== serviceTaxRate) {
             handleUpdateServiceTax(scannedServiceTax.toString());
         }
+
+        // Add detected tax profiles
+        if (scannedTaxProfiles && scannedTaxProfiles.length > 0 && room) {
+            const currentProfiles = room.taxProfiles || [];
+            const newProfiles: TaxProfile[] = [];
+
+            for (const scannedProfile of scannedTaxProfiles) {
+                // Check if profile with same name exists (case-insensitive)
+                const exists = currentProfiles.some(p => p.name.toLowerCase() === scannedProfile.name.toLowerCase());
+                if (!exists) {
+                    newProfiles.push({
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                        name: scannedProfile.name,
+                        rate: scannedProfile.rate,
+                        isGlobal: scannedProfile.isGlobal,
+                        isDouble: true, // Default to true as per requirements
+                        icon: 'Percent' // Default icon
+                    });
+                }
+            }
+
+            if (newProfiles.length > 0 && room) {
+                try {
+                    await updateRoomTaxProfiles(roomId, [...currentProfiles, ...newProfiles]);
+                } catch (error) {
+                    console.error('Error adding scanned tax profiles:', error);
+                }
+            }
+        }
     };
 
     const handleCreateProfile = async () => {
@@ -344,10 +366,10 @@ export default function RoomPage() {
             name: newProfileName,
             rate: parseFloat(newProfileRate),
             isGlobal: false,
-            isDouble: false,
+            isDouble: true,
             icon: newProfileIcon
         };
-        const updatedProfiles = [...room.taxProfiles, newProfile];
+        const updatedProfiles = [...(room.taxProfiles || []), newProfile];
         await updateRoomTaxProfiles(roomId, updatedProfiles);
         setNewProfileName('');
         setNewProfileRate('');
@@ -371,6 +393,12 @@ export default function RoomPage() {
         await updateRoomTaxProfiles(roomId, updatedProfiles);
     };
 
+    const handleDeleteProfile = async (profileId: string) => {
+        if (!room) return;
+        const updatedProfiles = room.taxProfiles.filter(p => p.id !== profileId);
+        await updateRoomTaxProfiles(roomId, updatedProfiles);
+    };
+
     const handleCopyCode = () => {
         if (room?.code) {
             navigator.clipboard.writeText(room.code);
@@ -386,69 +414,42 @@ export default function RoomPage() {
     };
 
     const handleShareLink = () => {
-        const text = `Join my Split Room: ${room?.name || 'Bill Split'}\nCode: ${room?.code}\nLink: ${window.location.href}`;
         if (navigator.share) {
             navigator.share({
-                title: room?.name || 'Split Bill',
-                text: text,
+                title: `Join ${room?.name || 'Split Bill Room'}`,
+                text: `Join my room to split the bill! Code: ${room?.code}`,
                 url: window.location.href,
             }).catch(console.error);
         } else {
-            navigator.clipboard.writeText(text);
+            navigator.clipboard.writeText(window.location.href);
             setCopiedShareLink(true);
             setTimeout(() => setCopiedShareLink(false), 2000);
         }
     };
 
-    const handleBackButton = async () => {
-        if (!user) {
-            router.push('/history');
-            return;
-        }
-
-        // If guest user, delete account and leave room
-        if (user.isAnonymous) {
-            try {
-                await leaveRoom(roomId, user.uid);
-                const { deleteUserAccount } = await import('@/lib/firebase/auth');
-                await deleteUserAccount(user);
-                router.push('/');
-            } catch (error) {
-                console.error('Error handling guest exit:', error);
-                router.push('/history');
-            }
-        } else {
-            router.push('/history');
+    const handleToggleSubmit = async () => {
+        if (!user || !room) return;
+        setIsSubmitting(true);
+        try {
+            const participant = room.participants.find(p => p.userId === user.uid);
+            const newStatus = !participant?.hasSubmitted;
+            await toggleSubmissionStatus(roomId, user.uid, newStatus);
+        } catch (error) {
+            console.error('Error toggling submission:', error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleLeaveRoom = async () => {
-        if (!user || !confirm('Are you sure you want to leave this room?')) return;
-        try {
-            await leaveRoom(roomId, user.uid);
-
-            // Check if this is a guest user
-            if (user.isAnonymous) {
-                // Import getUserRooms and deleteUserAccount
-                const { getUserRooms } = await import('@/lib/firebase/firestore');
-                const { deleteUserAccount } = await import('@/lib/firebase/auth');
-
-                const userRooms = await getUserRooms(user.uid);
-                const hasActiveRooms = userRooms.some(r =>
-                    r.participants.some(p => p.userId === user.uid)
-                );
-
-                // If no active rooms, delete the guest account
-                if (!hasActiveRooms) {
-                    await deleteUserAccount(user);
-                    router.push('/');
-                    return;
-                }
+        if (!user || !roomId) return;
+        if (confirm('Are you sure you want to leave this room?')) {
+            try {
+                await leaveRoom(roomId, user.uid);
+                router.push('/');
+            } catch (error) {
+                console.error('Error leaving room:', error);
             }
-
-            router.push('/history');
-        } catch (error) {
-            console.error('Error leaving room:', error);
         }
     };
 
@@ -462,117 +463,195 @@ export default function RoomPage() {
         }
     };
 
-    const totalBill = room ? calculateTotalBill(items, room.taxProfiles, serviceTaxRate) : 0;
-    const userShare = user && room ? calculateUserShare(items, user.uid, room.taxProfiles, serviceTaxRate) : 0;
-    const currentParticipant = room?.participants.find(p => p.userId === user?.uid);
-    const hasUserSelectedItems = items.some(item => item.selectedBy.includes(user?.uid || ''));
+    const handleDownloadReceipt = async () => {
+        if (!receiptRef.current) return;
+        setIsDownloading(true);
+        try {
+            const canvas = await html2canvas(receiptRef.current, {
+                scale: 2, // Higher quality
+                backgroundColor: '#ffffff',
+                logging: false,
+            });
 
-    if (!room) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-none h-12 w-12 border-b-2 border-black"></div></div>;
+            const image = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `split-bill-receipt-${room?.code || 'room'}.png`;
+            link.click();
+        } catch (error) {
+            console.error('Error downloading receipt:', error);
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    if (!room || !user) {
+        return (
+            <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-bauhaus-blue"></div>
+            </div>
+        );
+    }
+
+    const currentParticipant = room.participants.find(p => p.userId === user.uid);
+    const userShare = calculateUserShare(items, user.uid, room.taxProfiles, room.serviceTaxRate);
+    const hasUserSelectedItems = items.some(item => item.selectedBy.includes(user.uid));
+    const isSubmitted = currentParticipant?.hasSubmitted || false;
+    const totalBill = calculateTotalBill(items, room.taxProfiles, serviceTaxRate);
 
     return (
-        <div className={`min-h-screen transition-colors duration-300 bg-background`}>
-            {/* Header */}
-            <header className="bg-bauhaus-yellow/90 backdrop-blur-md border-b-4 border-black dark:border-white p-4 sticky top-0 z-50 shadow-[0px_4px_0px_0px_var(--shadow-color)] transition-all">
-                <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
-                        <button onClick={handleBackButton} className="p-2 bg-white dark:bg-neutral-800 border-2 border-black dark:border-white hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-[2px_2px_0px_0px_var(--shadow-color)] transition-all rounded-none">
-                            <ChevronDown className="w-6 h-6 rotate-90 text-black dark:text-white" />
-                        </button>
-                        <div>
-                            <h1 className="text-xl sm:text-2xl font-black text-bauhaus-dark uppercase tracking-tighter truncate max-w-[200px] sm:max-w-none">{room.name || 'Room'}</h1>
-                            <div className="flex items-center gap-2 text-sm font-bold text-bauhaus-dark/80">
-                                <span className="bg-white/50 px-2 py-0.5 border border-black/20 rounded-none">{room.code}</span>
-                                <button onClick={handleCopyCode} className="hover:text-black transition-colors">
-                                    {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
+        <div className="min-h-screen bg-[var(--background)] pb-24 sm:pb-8 transition-colors duration-300">
+            {/* Mobile Header */}
+            <header className="lg:hidden sticky top-0 z-40 bg-[var(--background)]/80 backdrop-blur-md border-b-2 border-[var(--border-color)] px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <button onClick={() => router.push('/')} className="p-2 -ml-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors">
+                        <LogOut className="w-5 h-5 text-foreground" />
+                    </button>
+                    <div>
+                        <h1 className="font-black text-lg text-foreground leading-tight truncate max-w-[150px]">{room.name || 'Room'}</h1>
+                        <p className="text-xs font-bold text-foreground/60">Code: {room.code}</p>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
-                        <button
-                            onClick={() => setShowTaxPanel(true)}
-                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white dark:bg-neutral-800 border-2 border-black dark:border-white hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)]"
-                        >
-                            <Building2 className="w-5 h-5 text-black dark:text-white" />
-                            <span className="text-black dark:text-white text-sm hidden sm:inline">Tax</span>
-                        </button>
-                        {!user?.isAnonymous && (
-                            <button
-                                onClick={() => setShowDangerZone(true)}
-                                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-500 border-2 border-black dark:border-white hover:bg-red-600 transition-colors font-bold uppercase rounded-none shadow-[2px_2px_0px_0px_var(--shadow-color)]"
-                                title="Danger Zone"
-                            >
-                                <AlertTriangle className="w-5 h-5 text-white" />
-                            </button>
-                        )}
-                        <button
-                            onClick={handleShareLink}
-                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-bauhaus-dark text-white border-2 border-black dark:border-white font-bold hover:shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-all rounded-none uppercase shadow-[2px_2px_0px_0px_var(--shadow-color)]"
-                        >
-                            <Download className="w-5 h-5" />
-                            <span className="text-sm hidden sm:inline">Share</span>
-                        </button>
-                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowScanner(true)}
+                        disabled={isSubmitted}
+                        className="p-2 bg-bauhaus-yellow text-bauhaus-dark border-2 border-[var(--border-color)] shadow-[2px_2px_0px_0px_var(--shadow-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <ScanLine className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => setShowTaxPanel(true)}
+                        disabled={isSubmitted}
+                        className="p-2 bg-[var(--card-bg)] border-2 border-[var(--border-color)] text-foreground shadow-[2px_2px_0px_0px_var(--shadow-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Percent className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => setShowDangerZone(true)}
+                        className="p-2 bg-red-500 text-white border-2 border-[var(--border-color)] shadow-[2px_2px_0px_0px_var(--shadow-color)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none rounded-none"
+                    >
+                        <AlertTriangle className="w-5 h-5" />
+                    </button>
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto p-4 pb-32">
-                <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
+            <main className="max-w-6xl mx-auto p-4 sm:p-8 pt-4 sm:pt-8">
+                {/* Desktop Header */}
+                <div className="hidden lg:flex justify-between items-start mb-8">
+                    <div>
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center gap-4 mb-2"
+                        >
+                            <button
+                                onClick={() => router.push('/')}
+                                className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
+                                title="Back to Home"
+                            >
+                                <ArrowLeft className="w-8 h-8 text-foreground" />
+                            </button>
+                            <h1 className="text-4xl sm:text-5xl font-black text-foreground uppercase tracking-tight">
+                                {room.name || 'Split Bill'}
+                            </h1>
+                        </motion.div>
+                        <div className="flex items-center gap-4">
+                            <div className="bg-[var(--card-bg)] px-4 py-2 border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--shadow-color)] flex items-center gap-3 rounded-none">
+                                <span className="font-bold text-foreground/60 text-sm uppercase">Room Code</span>
+                                <span className="font-black text-xl text-foreground tracking-widest">{room.code}</span>
+                                <button onClick={handleCopyCode} className="hover:text-bauhaus-blue transition-colors relative">
+                                    {copiedCode ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                                </button>
+                            </div>
+                            <button
+                                onClick={handleShareLink}
+                                className="bg-bauhaus-blue text-white px-4 py-2 border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all font-bold flex items-center gap-2 rounded-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                            >
+                                {copiedShareLink ? <Check className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                                INVITE
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setShowScanner(true)}
+                            disabled={isSubmitted}
+                            className="bg-bauhaus-yellow text-bauhaus-dark px-4 py-2 border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all font-bold flex items-center gap-2 rounded-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none"
+                        >
+                            <ScanLine className="w-5 h-5" />
+                            SCAN RECEIPT
+                        </button>
+                        <button
+                            onClick={() => setShowTaxPanel(true)}
+                            disabled={isSubmitted}
+                            className="bg-[var(--card-bg)] text-foreground px-4 py-2 border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all font-bold flex items-center gap-2 rounded-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none"
+                        >
+                            <Percent className="w-5 h-5" />
+                            TAXES
+                        </button>
+                        <button
+                            onClick={() => setShowDangerZone(true)}
+                            className="bg-red-500 text-white px-4 py-2 border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all font-bold flex items-center gap-2 rounded-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                        >
+                            <AlertTriangle className="w-5 h-5" />
+                            DANGER ZONE
+                        </button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Column: Items */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Add Item Form */}
-                        <motion.div variants={bauhausCard} initial="hidden" animate="visible" className="bauhaus-card p-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`bg-[var(--card-bg)] border-4 border-[var(--border-color)] p-6 shadow-[8px_8px_0px_0px_var(--shadow-color)] rounded-none ${isSubmitted ? 'opacity-50 pointer-events-none' : ''}`}
+                        >
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-black text-foreground uppercase flex items-center gap-2">
-                                    <Receipt className="w-6 h-6" /> Bill Items
+                                <h2 className="text-xl font-black uppercase flex items-center gap-2 text-foreground">
+                                    <Receipt className="w-6 h-6" /> Add Items
                                 </h2>
-                                <button onClick={() => setShowAddItem(!showAddItem)} className="lg:hidden p-2 bg-bauhaus-dark text-background rounded-none">
+                                <button
+                                    onClick={() => setShowAddItem(!showAddItem)}
+                                    className="lg:hidden p-2 bg-[var(--card-bg)] border-2 border-[var(--border-color)] rounded-none"
+                                >
                                     {showAddItem ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                                 </button>
                             </div>
 
-                            <div className="mb-6">
-                                <button
-                                    onClick={() => setShowScanner(true)}
-                                    className="w-full flex items-center justify-center gap-2 py-3 bg-[var(--card-bg)] border-2 border-dashed border-[var(--border-color)] hover:border-bauhaus-blue hover:text-bauhaus-blue transition-colors font-bold uppercase rounded-none"
-                                >
-                                    <ScanLine className="w-5 h-5" />
-                                    Scan Receipt with AI
-                                </button>
-                            </div>
-
                             <div className={`${showAddItem ? 'block' : 'hidden'} lg:block`}>
-                                <form onSubmit={handleAddItem} className="flex flex-col sm:flex-row gap-3">
-                                    <input
-                                        type="text"
-                                        placeholder="Item Name"
-                                        value={newItemName}
-                                        onChange={(e) => setNewItemName(e.target.value)}
-                                        className="bauhaus-input flex-grow"
-                                    />
-                                    <div className="flex gap-2">
-                                        <div className="flex transition-all duration-200 hover:shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:-translate-y-[2px] hover:-translate-x-[2px]">
+                                <form onSubmit={handleAddItem}>
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <input
+                                            type="text"
+                                            placeholder="Item Name"
+                                            value={newItemName}
+                                            onChange={(e) => setNewItemName(e.target.value)}
+                                            className="bauhaus-input flex-grow"
+                                        />
+                                        <div className="flex items-center group hover:shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-shadow border-2 border-[var(--border-color)] rounded-none">
                                             <button
                                                 type="button"
                                                 onClick={() => setNewItemQuantity(Math.max(1, newItemQuantity - 1))}
-                                                className="px-2 bg-[var(--card-bg)] border-2 border-r-0 border-[var(--border-color)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors flex items-center justify-center rounded-none"
+                                                className="w-12 h-12 bg-[var(--card-bg)] border-r border-[var(--border-color)] group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors flex items-center justify-center rounded-none"
                                             >
-                                                <Minus className="w-3 h-3" />
+                                                <Minus className="w-4 h-4" />
                                             </button>
                                             <input
                                                 type="number"
-                                                placeholder="Qty"
                                                 value={newItemQuantity}
                                                 onChange={(e) => setNewItemQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                                                className="w-12 text-center bg-[var(--input-bg)] border-2 border-[var(--border-color)] font-bold focus:outline-none text-[var(--foreground)] p-3 rounded-none"
+                                                className="w-12 h-12 text-center bg-[var(--input-bg)] border-r border-[var(--border-color)] font-bold focus:outline-none text-[var(--foreground)] rounded-none"
                                                 min="1"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setNewItemQuantity(newItemQuantity + 1)}
-                                                className="px-2 bg-[var(--card-bg)] border-2 border-l-0 border-[var(--border-color)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors flex items-center justify-center rounded-none"
+                                                className="w-12 h-12 bg-[var(--card-bg)] group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors flex items-center justify-center rounded-none"
                                             >
-                                                <Plus className="w-3 h-3" />
+                                                <Plus className="w-4 h-4" />
                                             </button>
                                         </div>
                                         <input
@@ -615,10 +694,10 @@ export default function RoomPage() {
                                             className={`p-4 border-2 border-[var(--border-color)] transition-all shadow-[4px_4px_0px_0px_var(--shadow-color)] rounded-none ${isSelected
                                                 ? 'bg-bauhaus-yellow dark:bg-bauhaus-yellow'
                                                 : 'bg-[var(--card-bg)]'
-                                                }`}
+                                                } ${isSubmitted ? 'opacity-70' : ''}`}
                                         >
                                             <div className="flex items-center justify-between gap-4">
-                                                <div className="flex-grow flex items-center gap-4 cursor-pointer" onClick={() => handleToggleSelection(item.id)}>
+                                                <div className={`flex-grow flex items-center gap-4 ${isSubmitted ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={() => !isSubmitted && handleToggleSelection(item.id)}>
                                                     <div className={`w-8 h-8 border-2 border-[var(--border-color)] flex items-center justify-center transition-colors rounded-none ${isSelected ? 'bg-[var(--bauhaus-dark)] text-[var(--background)]' : 'bg-[var(--card-bg)]'}`}>
                                                         {isSelected && <Check className="w-5 h-5" />}
                                                     </div>
@@ -630,9 +709,20 @@ export default function RoomPage() {
                                                                 {item.quantity && item.quantity > 1 ? ` = ${formatCurrency(itemTotal, room.currency)}` : ''}
                                                             </span>
                                                             {effectiveProfile && (
-                                                                <span className="flex items-center gap-1 bg-black/5 dark:bg-white/10 px-1.5 rounded-none text-xs font-bold border border-black/10 dark:border-white/10">
-                                                                    {effectiveProfile.name} ({effectiveProfile.rate}%)
-                                                                </span>
+                                                                effectiveProfile.isDouble ? (
+                                                                    <>
+                                                                        <span className="flex items-center gap-1 bg-black/5 dark:bg-white/10 px-1.5 rounded-none text-xs font-bold border border-black/10 dark:border-white/10">
+                                                                            CGST ({effectiveProfile.rate}%)
+                                                                        </span>
+                                                                        <span className="flex items-center gap-1 bg-black/5 dark:bg-white/10 px-1.5 rounded-none text-xs font-bold border border-black/10 dark:border-white/10">
+                                                                            SGST ({effectiveProfile.rate}%)
+                                                                        </span>
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="flex items-center gap-1 bg-black/5 dark:bg-white/10 px-1.5 rounded-none text-xs font-bold border border-black/10 dark:border-white/10">
+                                                                        {effectiveProfile.name} ({effectiveProfile.rate}%)
+                                                                    </span>
+                                                                )
                                                             )}
                                                         </div>
                                                         <div className="flex -space-x-2 mt-2">
@@ -653,11 +743,13 @@ export default function RoomPage() {
                                                         selectedProfileId={item.taxProfileId}
                                                         options={room.taxProfiles}
                                                         onSelect={(id) => updateItemTaxProfile(roomId, item.id, id === 'none' ? undefined : id)}
+                                                        disabled={isSubmitted}
                                                     />
                                                     {item.addedBy === user?.uid && (
                                                         <button
                                                             onClick={() => handleDeleteItem(item.id)}
-                                                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-none transition-colors"
+                                                            disabled={isSubmitted}
+                                                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
                                                             <Trash2 className="w-5 h-5" />
                                                         </button>
@@ -722,19 +814,27 @@ export default function RoomPage() {
                                 {formatCurrency(userShare, room.currency)}
                             </div>
 
-                            {!currentParticipant?.hasSubmitted ? (
+                            <button
+                                onClick={handleToggleSubmit}
+                                disabled={isSubmitting || (!hasUserSelectedItems && !isSubmitted)}
+                                className={`w-full border-2 border-[var(--border-color)] font-black py-3 shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none uppercase rounded-none hover:-translate-y-0.5 hover:-translate-x-0.5 ${isSubmitted ? 'bg-white text-bauhaus-red' : 'bg-white text-bauhaus-red'}`}
+                            >
+                                {isSubmitting ? 'Updating...' : (isSubmitted ? "I'm Not Done" : "I'm Done")}
+                            </button>
+
+                            {hasUserSelectedItems && (
                                 <button
-                                    onClick={handleSubmit}
-                                    disabled={isSubmitting || !hasUserSelectedItems}
-                                    className="w-full bg-white text-bauhaus-red border-2 border-[var(--border-color)] font-black py-3 shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none uppercase rounded-none hover:-translate-y-0.5 hover:-translate-x-0.5"
+                                    onClick={handleDownloadReceipt}
+                                    disabled={isDownloading}
+                                    className="w-full mt-3 flex items-center justify-center gap-2 bg-bauhaus-yellow text-bauhaus-dark border-2 border-[var(--border-color)] font-black py-3 shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:shadow-[6px_6px_0px_0px_var(--shadow-color)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none uppercase rounded-none hover:-translate-y-0.5 hover:-translate-x-0.5"
                                 >
-                                    {isSubmitting ? 'Submitting...' : "I'm Done"}
+                                    {isDownloading ? (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-bauhaus-dark"></div>
+                                    ) : (
+                                        <Download className="w-4 h-4" />
+                                    )}
+                                    Download Receipt
                                 </button>
-                            ) : (
-                                <div className="bg-white/20 border-2 border-white/40 p-3 text-center font-bold rounded-none">
-                                    <Check className="w-6 h-6 mx-auto mb-1" />
-                                    WAITING FOR OTHERS
-                                </div>
                             )}
                         </div>
 
@@ -910,7 +1010,7 @@ export default function RoomPage() {
                                                             </button>
                                                         </Tooltip>
 
-                                                        <Tooltip content="Apply tax on top of other taxes (Center & State)">
+                                                        <Tooltip content="Apply both CGST and SGST">
                                                             <button
                                                                 onClick={() => handleToggleDouble(profile.id)}
                                                                 className={`w-10 h-10 flex items-center justify-center border-2 border-[var(--border-color)] transition-all rounded-none ${profile.isDouble
@@ -921,6 +1021,14 @@ export default function RoomPage() {
                                                                 <Layers className="w-5 h-5" />
                                                             </button>
                                                         </Tooltip>
+
+                                                        <button
+                                                            onClick={() => handleDeleteProfile(profile.id)}
+                                                            className="w-10 h-10 flex items-center justify-center border-2 border-[var(--border-color)] bg-[var(--card-bg)] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all rounded-none"
+                                                            title="Delete Profile"
+                                                        >
+                                                            <Trash2 className="w-5 h-5" />
+                                                        </button>
                                                     </div>
                                                 </div>
                                             );
@@ -1002,12 +1110,27 @@ export default function RoomPage() {
             }
 
             {/* Receipt Scanner Modal */}
-            {showScanner && (
-                <ReceiptScanner
-                    onScanComplete={handleScanComplete}
-                    onClose={() => setShowScanner(false)}
-                />
-            )}
+            {
+                showScanner && (
+                    <ReceiptScanner
+                        onScanComplete={handleScanComplete}
+                        onClose={() => setShowScanner(false)}
+                    />
+                )
+            }
+
+            {/* Hidden Receipt Card for Capture */}
+            <div className="fixed left-[-9999px] top-0">
+                {room && user && (
+                    <ReceiptCard
+                        ref={receiptRef}
+                        room={room}
+                        items={items}
+                        userId={user.uid}
+                        userName={room.participants.find(p => p.userId === user.uid)?.displayName || 'Guest'}
+                    />
+                )}
+            </div>
         </div>
     );
 }

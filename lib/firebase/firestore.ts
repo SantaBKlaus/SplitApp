@@ -366,8 +366,8 @@ export const toggleItemSelection = async (roomId: string, itemId: string, userId
     }
 };
 
-// Submit user's selections
-export const submitSelections = async (roomId: string, userId: string) => {
+// Toggle user's submission status
+export const toggleSubmissionStatus = async (roomId: string, userId: string, status: boolean) => {
     try {
         const roomRef = doc(db, 'rooms', roomId);
         const roomSnap = await getDoc(roomRef);
@@ -378,27 +378,37 @@ export const submitSelections = async (roomId: string, userId: string) => {
 
         const room = roomSnap.data() as Room;
         const updatedParticipants = room.participants.map((p) =>
-            p.userId === userId ? { ...p, hasSubmitted: true } : p
+            p.userId === userId ? { ...p, hasSubmitted: status } : p
         );
 
         await updateDoc(roomRef, {
             participants: updatedParticipants,
         });
 
-        // Check if all participants have submitted
-        const allSubmitted = updatedParticipants.every((p) => p.hasSubmitted);
-        if (allSubmitted) {
-            // Set expiration to 15 days from now
-            const expiresAt = Timestamp.fromMillis(Date.now() + 15 * 24 * 60 * 60 * 1000);
-            await updateDoc(roomRef, {
-                status: 'completed',
-                expiresAt,
-            });
+        // Check if all participants have submitted (only if status is true)
+        if (status) {
+            const allSubmitted = updatedParticipants.every((p) => p.hasSubmitted);
+            if (allSubmitted) {
+                // Set expiration to 15 days from now
+                const expiresAt = Timestamp.fromMillis(Date.now() + 15 * 24 * 60 * 60 * 1000);
+                await updateDoc(roomRef, {
+                    status: 'completed',
+                    expiresAt,
+                });
+            }
+        } else {
+            // If un-submitting, ensure room is active (if it was completed)
+            if (room.status === 'completed') {
+                await updateDoc(roomRef, {
+                    status: 'active',
+                    expiresAt: deleteField(),
+                });
+            }
         }
 
-        return allSubmitted;
+        return status;
     } catch (error) {
-        console.error('Error submitting selections:', error);
+        console.error('Error toggling submission status:', error);
         throw error;
     }
 };
